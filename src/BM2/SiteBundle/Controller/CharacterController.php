@@ -7,6 +7,7 @@ use BM2\SiteBundle\Entity\Character;
 use BM2\SiteBundle\Entity\CharacterBackground;
 use BM2\SiteBundle\Entity\CharacterRating;
 use BM2\SiteBundle\Entity\CharacterRatingVote;
+use BM2\SiteBundle\Entity\WelcomeMessage;
 
 use BM2\SiteBundle\Form\CharacterBackgroundType;
 use BM2\SiteBundle\Form\CharacterPlacementType;
@@ -14,6 +15,9 @@ use BM2\SiteBundle\Form\CharacterRatingType;
 use BM2\SiteBundle\Form\EntourageManageType;
 use BM2\SiteBundle\Form\SoldiersManageType;
 use BM2\SiteBundle\Form\InteractionType;
+use BM2\SiteBundle\Form\CreateWelcomeType;
+use BM2\SiteBundle\Form\SelectWelcomeType;
+use BM2\SiteBundle\Form\EditWelcomeType;
 use BM2\SiteBundle\Service\Geography;
 use BM2\SiteBundle\Service\History;
 
@@ -1256,5 +1260,85 @@ class CharacterController extends Controller {
 
 		return array('mercs'=>$mercs, 'hiredbyme'=>$mercs->getHiredBy()==$character);
 	}
+	
+   /**
+     * @Route("/welcomemsg/")
+     * @Template("BM2SiteBundle:Politics:welcome.html.twig")
+     */
+	
+	public function welcomeMsgAction(Request $request) {
+		$character = $this->get('appstate')->getCharacter();
+		
+		$messages = $character->getWelcomeMessages();
+		
+		if (empty($messages)) {
+			return array('nomessages'=>true);
+		}
+		
+		return array(
+			'messages' => $character->getWelcomeMessages(),
+		);
+	}
 
+   /**
+     * @Route("/welcomemsg/{id}")
+     * @Template("BM2SiteBundle:Politics:welcome.html.twig")
+     */
+	
+	public function editMsgAction($id, Request $resuest) {
+		$character = $this->get('appstate')->getCharacter(true);
+		$em = $this->getDoctrine()->getManager();
+		$using = false;
+		$candelete = true;
+		$isnew = false;
+		
+		if ($id > 0) {
+			/* The permissions list management page that most of the was cloned and edited from includes the
+			following, but I'm not sure if it's needed or not. (It has been edited for use here if we need it.
+			
+			$message = $character->getListings()->filter(
+				function($entry) use ($id) {
+					return ($entry->getId()==$id);
+				}
+			)->first();
+			
+			*/
+			
+			if ($id->getCharacter() != $character) {
+				throw new AccessDeniedHttpException ("error.noaccess.notyourmsg");
+			}
+			$using = $em->getRepository('BM2SiteBundle:KnightOffer')->findByMessage($id);
+			if ($using == TRUE) {
+				$candelete = false;
+			}
+		} else {
+			$message = new WelcomeMessage;
+			$candelete = false;
+			$isnew = true;
+		}
+		# The rest of this is pure WiP.
+		if ($candelete) {
+			$form_delete = $this->createFormBuilder()
+				->add('submit', 'submit', array(
+					'label'=>'welcomemsg.delete.submit',
+					'translation_domain' => 'politics'
+					))
+				->getForm();
+			$form_delete->handleRequest($request);
+			if ($form_delete->isValid()) {
+				$name = $listing->getName();
+				foreach ($listing->getMembers() as $member) {
+					$em->remove($member);
+				}
+				$em->remove($listing);
+				$em->flush();
+				$this->addFlash('notice', $this->get('translator')->trans('lists.delete.done', array("%name%"=>$name), 'politics'));
+				return $this->redirectToRoute('bm2_lists');
+		}
+		
+			
+	}
+		
+		
+	
 }
