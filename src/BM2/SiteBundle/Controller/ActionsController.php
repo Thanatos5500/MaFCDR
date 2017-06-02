@@ -65,7 +65,7 @@ class ActionsController extends Controller {
 			// validate that we can support this action!
 			switch ($action->getType()) {
 				case 'settlement.take': // if we could take control ourselves, we can support
-					$check = $this->get('dispatcher')->controlTakeTest();
+					$check = $this->get('dispatcher')->controlSupportTest();
 					break;
 				default:
 					return array('action'=>null, 'result'=>array('success'=>false, 'message'=>'either.invalid.action'));
