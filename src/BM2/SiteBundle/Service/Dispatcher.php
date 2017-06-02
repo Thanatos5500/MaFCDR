@@ -244,6 +244,12 @@ class Dispatcher {
 
 		$actions=array();
 		$actions[] = $this->controlTakeTest(true);
+		if ($this->getCharacter()->getInsideSettlement()->getRelatedActions()->exists(function($key, $element) { return $element->getType() == 'settlement.take'; })) {
+			$actions[] = $this->controlSupportTest(true);
+		}
+		if ($this->getCharacter()->getInsideSettlement()->getRelatedActions()->exists(function($key, $element) { return $element->getType() == 'settlement.take'; })) {
+			$actions[] = $this->controlOpposeTest(true);
+		}
 
 		if (!$this->getCharacter()->getInsideSettlement()) {
 			$actions[] = array("name"=>"control.all", "description"=>"unavailable.notinside");
@@ -721,6 +727,100 @@ class Dispatcher {
 		} else {
 			// uncontrolled settlement
 			return $this->action("control.take", "bm2_site_actions_take");
+		}
+	}
+
+	public function controlSupportTest($check_duplicate=false, $check_regroup=true) {
+		# This is cloned from above, but removes the free account limit check, allowing them to support/oppose takeovers.
+		if (($check = $this->controlActionsGenericTests()) !== true) {
+			return array("name"=>"control.support.name", "description"=>"unavailable.$check");
+		}
+		if ($this->getCharacter()->isPrisoner()) {
+			return array("name"=>"control.support.name", "description"=>"unavailable.prisoner");
+		}
+		if (!$place = $this->getActionableSettlement()) {
+			return array("name"=>"control.support.name", "description"=>"unavailable.nosettlement");
+		}
+		if ($place->isFortified() && $this->getCharacter()->getInsideSettlement()!=$place) {
+			return array("name"=>"control.support.name", "description"=>"unavailable.location.fortified");
+		}
+		if ($check_duplicate && $this->getCharacter()->isDoingAction('settlement.take')) {
+			return array("name"=>"control.support.name", "description"=>"unavailable.already");
+		}
+		if ($check_regroup && $this->getCharacter()->isDoingAction('military.regroup')) {
+			return array("name"=>"control.support.name", "description"=>"unavailable.regrouping");
+		}
+		if ($this->getCharacter()->isDoingAction('military.evade')) {
+			return array("name"=>"control.support.name", "description"=>"unavailable.evading");
+		}
+		if ($this->getCharacter()->getActions()->exists(
+			function($key, $element) { return ($element->getType() == 'support' && $element->getSupportedAction() && $element->getSupportedAction()->getType() == 'settlement.take'); }
+		)) {
+			return array("name"=>"control.support.name", "description"=>"unavailable.supporting");
+		}
+
+		if ($place->getOwner() == $this->getCharacter()) {
+			// I control this settlement - defend if applicable
+			if ($place->getRelatedActions()->exists(
+				function($key, $element) { return $element->getType() == 'settlement.take'; }
+				)
+			   ) {
+				return array("name"=>"control.support.name", "description"=>"unavailable.location.yours");
+			}
+		} elseif ($place->getOwner()) {
+			// someone else controls this settlement
+			// TODO: different text?
+			return $this->action("control.support.name", "bm2_actionsupport");
+		} else {
+			// uncontrolled settlement
+			return $this->action("control.support.name", "bm2_actionsupport");
+		}
+	}
+	
+	public function controlOpposeTest($check_duplicate=false, $check_regroup=true) {
+		# This is cloned from above, but removes the free account limit check, allowing them to support/oppose takeovers.
+		if (($check = $this->controlActionsGenericTests()) !== true) {
+			return array("name"=>"control.support.name", "description"=>"unavailable.$check");
+		}
+		if ($this->getCharacter()->isPrisoner()) {
+			return array("name"=>"control.support.name", "description"=>"unavailable.prisoner");
+		}
+		if (!$place = $this->getActionableSettlement()) {
+			return array("name"=>"control.support.name", "description"=>"unavailable.nosettlement");
+		}
+		if ($place->isFortified() && $this->getCharacter()->getInsideSettlement()!=$place) {
+			return array("name"=>"control.support.name", "description"=>"unavailable.location.fortified");
+		}
+		if ($check_duplicate && $this->getCharacter()->isDoingAction('settlement.take')) {
+			return array("name"=>"control.support.name", "description"=>"unavailable.already");
+		}
+		if ($check_regroup && $this->getCharacter()->isDoingAction('military.regroup')) {
+			return array("name"=>"control.support.name", "description"=>"unavailable.regrouping");
+		}
+		if ($this->getCharacter()->isDoingAction('military.evade')) {
+			return array("name"=>"control.support.name", "description"=>"unavailable.evading");
+		}
+		if ($this->getCharacter()->getActions()->exists(
+			function($key, $element) { return ($element->getType() == 'support' && $element->getSupportedAction() && $element->getSupportedAction()->getType() == 'settlement.take'); }
+		)) {
+			return array("name"=>"control.support.name", "description"=>"unavailable.supporting");
+		}
+
+		if ($place->getOwner() == $this->getCharacter()) {
+			// I control this settlement - defend if applicable
+			if ($place->getRelatedActions()->exists(
+				function($key, $element) { return $element->getType() == 'settlement.take'; }
+				)
+			   ) {
+				return $this->action("control.oppose.name", "bm2_actionoppose");
+			}
+		} elseif ($place->getOwner()) {
+			// someone else controls this settlement
+			// TODO: different text?
+			return $this->action("control.oppose.name", "bm2_actionoppose");
+		} else {
+			// uncontrolled settlement
+			return $this->action("control.oppose.name", "bm2_actionoppose");
 		}
 	}
 
