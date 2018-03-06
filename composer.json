@@ -28,9 +28,9 @@
         "doctrine/doctrine-fixtures-bundle": "2.*",
         "creof/doctrine2-spatial": "dev-master",
         "incenteev/composer-parameter-handler": "~2.0",
+        "codeception/codeception": "*",
         "phpunit/phpunit": "*",
         "knplabs/knp-markdown-bundle": "1.4.*@dev",
-        "codeception/codeception": "*",
         "paypal/merchant-sdk-php":"*"
     },
     "require-dev": {
